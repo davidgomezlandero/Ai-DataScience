@@ -2,10 +2,11 @@ import numpy
 import matplotlib.pyplot as plot
 import warnings
 import sys
+import pandas as pd
 
 if len(sys.argv) != 2:
     print("Error: Usage: python describe.py <dataset.csv>")
-    sys.exit(1)
+    exit(1)
 
 filename = sys.argv[1]
 if filename != 'datasets/dataset_train.csv':
@@ -14,18 +15,13 @@ if filename != 'datasets/dataset_train.csv':
 try:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        raw_data = numpy.genfromtxt('datasets/dataset_train.csv', delimiter= ',',
-            skip_header=1,
-            dtype=None,
-            encoding='utf-8')
+        raw_data = pd.read_csv(filename)
 except:
     print("Error loading dataset_train.csv")
+    exit(1)
 
-data = numpy.array(
-	[row[6:] for row in raw_data],
-	dtype = float
-)
-  
+data = raw_data.iloc[:, 6:].to_numpy()
+
 for i,l in enumerate(data):
-    print(l);
-    if i > 4: break;
+    print(l)
+    if i > 4: break

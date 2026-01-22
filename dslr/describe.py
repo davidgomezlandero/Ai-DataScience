@@ -22,7 +22,7 @@ except:
     exit(1)
 
 titles = raw_data.columns[6:].tolist()
-information = ["Count", "Mean", "Std", "Min", "25%", "50%", "75%", "Max"]
+information = ["Count", "Mean", "Std", "Min", "25%", "50%", "75%", "Max", "Variance", "Range"]
 raw_data_clean = raw_data.iloc[:, 6:].dropna()
 data = raw_data_clean.to_numpy()
 
@@ -56,7 +56,15 @@ def max_value(lst):
     sorted_list = sorted(lst)
     return (sorted_list[-1])
 
-funciones = [count, mean, std, min_value, perc25, perc50, perc75, max_value]
+def variance(lst):
+	m = mean(lst)
+	return sum((x - m) ** 2 for x in lst) / len(lst)
+
+def range_value(lst):
+	sorted_list = sorted(lst)
+	return sorted_list[-1] - sorted_list[0]
+
+funciones = [count, mean, std, min_value, perc25, perc50, perc75, max_value, variance, range_value]
 
 col_widths = []
 for title in titles:

@@ -1,8 +1,6 @@
-import numpy
 import matplotlib.pyplot as plt
 import warnings
 import sys
-import math
 import pandas as pd
 
 if len(sys.argv) != 2:
@@ -62,9 +60,9 @@ for i in range(n_features):
                       alpha=0.3, color='green', s=1)
         
         if i == n_features - 1:
-            ax.set_xlabel(titles[j], fontsize=8)
+            ax.set_xlabel(titles[j], fontsize=8, rotation = 45, ha='right')
         if j == 0:
-            ax.set_ylabel(titles[i], fontsize=8)
+            ax.set_ylabel(titles[i], fontsize=8, rotation = 45, ha='right')
         
         ax.tick_params(labelsize=6)
 
@@ -75,6 +73,6 @@ legend_elements = [
     Patch(facecolor='blue', alpha=0.4, label='Ravenclaw'),
     Patch(facecolor='green', alpha=0.4, label='Slytherin')
 ]
-plt.tight_layout(rect=[0, 0, 0.95, 0.99])  # Deja espacio arriba para el título
+plt.tight_layout(rect=[0, 0.03, 0.95, 0.99])  # Deja espacio arriba para el título
 fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.8, 0.99), ncol=4)
 plt.show()

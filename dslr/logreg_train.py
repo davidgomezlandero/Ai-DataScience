@@ -21,23 +21,22 @@ except:
     print("Error loading dataset_train.csv")
     exit(1)
 
-titles = raw_data.columns[6:].tolist()
-
+titles = raw_data.columns[6:].tolist() #Get column headers from column 6 onwards and convert to list
 """ Features used to train the model """
 features = ["Astronomy", "Herbology", "Ancient Runes"]
 
-raw_data_clean = raw_data.dropna(subset=features + ['Hogwarts House'])
+raw_data_clean = raw_data.dropna(subset=features + ['Hogwarts House'])#Remove rows with NaN in specific columns
 
 """ Split 70/30 """
-np.random.seed(42)
-indices = np.random.permutation(len(raw_data_clean))
+np.random.seed(42)#Set random seed for reproducibility
+indices = np.random.permutation(len(raw_data_clean))#Create array with indices and shuffle them randomly
 split_idx = int(0.7 * len(indices))
 
 train_indices = indices[:split_idx]
 test_indices = indices[split_idx:]
 
 """ Creating and cleaning datasets """
-train_data = raw_data_clean.iloc[train_indices].reset_index(drop=True)
+train_data = raw_data_clean.iloc[train_indices].reset_index(drop=True)#Get selected indices and reset them to 0
 test_data = raw_data_clean.iloc[test_indices].reset_index(drop=True)
 
 """ Saving test set to use it in accuracy.py """
@@ -45,7 +44,7 @@ test_data.to_csv("test.csv", index=False)
 
 """ normalitation functions"""
 data_train = train_data.to_numpy()
-features_index = [train_data.columns.get_loc(s) for s in features]
+features_index = [train_data.columns.get_loc(s) for s in features] #Get a list with column positions of the features
 
 def mean_manual(matrix):
     n_rows = len(matrix)
@@ -83,13 +82,13 @@ for i in range(len(X_list)):
 X = np.array(X_list)
 
 """ Bias """
-m = X.shape[0]
-X = np.c_[np.ones(m), X]
-
+m = X.shape[0]#Number of data points
+X = np.c_[np.ones(m), X]#Create array of 1s with length m and concatenate it with X
+""" Sigmoid function """
 def sigmoid(z):
     z = np.clip(z, -500, 500)
     return 1 / (1 + np.exp(-z))
-
+""" Calculate z and call sigmoid function """
 def hypothesis(X, theta):
     return sigmoid(np.dot(X, theta))
 
@@ -190,7 +189,7 @@ def denormalize_theta(theta, X_mean, X_std):
 
 """ Training """
 
-houses = train_data["Hogwarts House"].unique()
+houses = train_data["Hogwarts House"].unique() #Get house names
 alpha = 0.1
 max_iterations = 10000
 tolerance = 1e-6
@@ -201,10 +200,9 @@ method = 'batch'
 models = {}
 models_denorm = {}
 
-
 for house in houses:
-    y = (train_data["Hogwarts House"] == house).astype(int).to_numpy()
-    theta = np.zeros(X.shape[1])
+    y = (train_data["Hogwarts House"] == house).astype(int).to_numpy()#Binary vector identifying if the student belongs to the studied house or not
+    theta = np.zeros(X.shape[1])#Initialize theta for this house to 0
     
     if method == 'batch':
         theta = batch_gradient_descent(X, y, theta, alpha, max_iterations, tolerance)

@@ -37,7 +37,7 @@ hufflepuff_scores = hufflepuff[:,6:].astype(float)
 scores = data[:, 6:].astype(float)
 n_features = len(titles)
 
-fig, axes = plt.subplots(n_features, n_features, figsize=(20, 20))
+fig, axes = plt.subplots(n_features, n_features, figsize=(22, 22))
 fig.suptitle('Pair Plot - DSLR Dataset', fontsize=16, y=0.995)
 
 for i in range(n_features):
@@ -60,9 +60,9 @@ for i in range(n_features):
                       alpha=0.3, color='green', s=1)
         
         if i == n_features - 1:
-            ax.set_xlabel(titles[j], fontsize=8, rotation = 45, ha='right')
+            ax.set_xlabel(titles[j], fontsize=10, rotation = 45, ha='right')
         if j == 0:
-            ax.set_ylabel(titles[i], fontsize=8, rotation = 45, ha='right')
+            ax.set_ylabel(titles[i], fontsize=10, rotation = 45, ha='right')
         
         ax.tick_params(labelsize=6)
 
@@ -75,4 +75,5 @@ legend_elements = [
 ]
 plt.tight_layout(rect=[0, 0.03, 0.95, 0.99])  # Deja espacio arriba para el título
 fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.8, 0.99), ncol=4)
-plt.show()
+plt.savefig("pair_plot.png")
+plt.close()

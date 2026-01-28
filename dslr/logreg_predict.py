@@ -28,6 +28,8 @@ except:
 features = theta_data.columns[2:].tolist()
 houses = theta_data['house'].tolist()
 
+
+
 for feature in features:
     if feature not in raw_data.columns:
         print(f"Error: Feature '{feature}' not found in {filename}")
@@ -37,9 +39,12 @@ indices = raw_data['Index'].tolist()
 
 # Extraer características
 features_index = [raw_data.columns.get_loc(s) for s in features]
-data = raw_data.to_numpy()
-X = data[:, features_index].astype(float)
 
+X = raw_data[features].copy()
+
+for i,feature in enumerate(features):
+	X[feature] = X[feature].fillna(theta_data.iloc[4,i+2])
+X = X.to_numpy().astype(float)
 m = X.shape[0]
 X = np.c_[np.ones(m), X]
 
@@ -67,6 +72,4 @@ with open("houses.csv", "w") as f:
     f.write("Index,Hogwarts House\n")
     for idx, house in zip(indices, predictions):
         f.write(f"{int(idx)},{house}\n")
-
-print("✓ Predicciones completadas")
-print(f"✓ Resultados guardados en houses.csv")
+print("The result is saved in houses.csv")

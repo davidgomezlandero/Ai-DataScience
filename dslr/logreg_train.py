@@ -24,10 +24,10 @@ except:
 titles = raw_data.columns[6:].tolist() #Get column headers from column 6 onwards and convert to list
 """ Features used to train the model """
 features = ["Herbology", "Ancient Runes","Flying", "Defense Against the Dark Arts",  "Divination", "Charms","History of Magic"]
-
+print(raw_data["Hogwarts House"].value_counts())
 raw_data_clean = raw_data.dropna(subset=features + ['Hogwarts House'])#Remove rows with NaN in specific columns
 
-""" Split 70/30 """
+""" Split 80/30 """
 np.random.seed(42)#Set random seed for reproducibility
 indices = np.random.permutation(len(raw_data_clean))#Create array with indices and shuffle them randomly
 split_idx = int(0.8* len(indices))
@@ -35,9 +35,18 @@ split_idx = int(0.8* len(indices))
 train_indices = indices[:split_idx]
 test_indices = indices[split_idx:]
 
+
+
 """ Creating and cleaning datasets """
 train_data = raw_data_clean.iloc[train_indices].reset_index(drop=True)#Get selected indices and reset them to 0
 test_data = raw_data_clean.iloc[test_indices].reset_index(drop=True)
+
+print("Train set:")
+print(train_data["Hogwarts House"].value_counts())
+
+# Contar estudiantes por casa en test
+print("\nTest set:")
+print(test_data["Hogwarts House"].value_counts())
 
 """ Saving test set to use it in accuracy.py """
 test_data.to_csv("test.csv", index=False)
@@ -73,7 +82,6 @@ def std_manual(matrix, means):
 X = data_train[:, features_index].astype(float)
 X_list = X.tolist()
 X_mean = mean_manual(X_list)
-print(X_mean)
 X_std = std_manual(X_list, X_mean)
 
 for i in range(len(X_list)):
@@ -124,7 +132,6 @@ def batch_gradient_descent(X, y, theta, alpha, max_iterations, tolerance=1e-6):
 
 """ Mini-batch GD """
 def mini_batch_gradient_descent(X, y, theta, alpha, max_iterations, batch_size=32, tolerance=1e-6):
-    """Mini-batch GD: Usa lotes pequeños"""
     m = len(y)
     prev_cost = float('inf')
     
@@ -221,4 +228,6 @@ with open("theta.csv", "w") as f:
     f.write("house,bias," + ",".join(features) + "\n")
     for house, theta in models_denorm.items():
         f.write(house + "," + ",".join(map(str, theta)) + "\n")
-    f.write("," + ",".join(X_mean)+ "\n" )
+
+with open("mean.csv", "w") as f:
+    f.write(",".join(features) + "\n" + ",".join(map(str,X_mean)) + "\n")

@@ -21,6 +21,7 @@ except:
 """ Load theta.csv """
 try:
     theta_data = pd.read_csv("theta.csv")
+    mean = pd.read_csv("mean.csv")
 except:
     print("Error: theta.csv not found. Please run logreg_train.py first.")
     exit(1)
@@ -37,13 +38,12 @@ for feature in features:
 
 indices = raw_data['Index'].tolist()
 
-# Extraer características
 features_index = [raw_data.columns.get_loc(s) for s in features]
 
 X = raw_data[features].copy()
 
 for i,feature in enumerate(features):
-	X[feature] = X[feature].fillna(theta_data.iloc[4,i+2])
+	X[feature] = X[feature].fillna(mean.iloc[0,i])
 X = X.to_numpy().astype(float)
 m = X.shape[0]
 X = np.c_[np.ones(m), X]

@@ -6,12 +6,12 @@ import pandas as pd
 
 if len(sys.argv) != 2:
     print("Error: Usage: python logreg_train.py <dataset.csv>")
-    exit(1)
+    sys.exit(1)
 
 filename = sys.argv[1]
 if filename != 'datasets/dataset_train.csv':
     print("The dataset for training must be called dataset_train.csv and saved in the directory 'datasets'. Your path must be datasets/dataset_train.csv")
-    exit(1)
+    sys.exit(1)
 
 try:
     with warnings.catch_warnings():
@@ -19,7 +19,7 @@ try:
         raw_data = pd.read_csv(filename)
 except:
     print("Error loading dataset_train.csv")
-    exit(1)
+    sys.exit(1)
 
 titles = raw_data.columns[6:].tolist() #Get column headers from column 6 onwards and convert to list
 """ Features used to train the model """

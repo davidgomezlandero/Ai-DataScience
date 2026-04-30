@@ -13,7 +13,23 @@ def parse():
 	3. \'--predict\' -> It will make predictions using test.csv by default or the third argument(.csv) and put all them in a results.csv file")
 
 def split_dataset():
-    pass
+    if len(sys.argv) != 3:
+        raise Exception("--dataset <datset.csv>")
+    try:
+        raw_data = pd.read_csv(sys.argv[2], header=None)
+    except:
+        raise Exception("could not open the .csv file")
+    
+    #Split 80/20
+    np.random.seed(42)
+    raw_data_clean = raw_data.dropna()
+    indexes = np.random.permutation(len(raw_data_clean))
+    split_idx = int(0.8 * len(indexes))
+    train_data = raw_data_clean.iloc[indexes[:split_idx]].reset_index(drop=True)
+    test_data = raw_data_clean.iloc[indexes[split_idx:]].reset_index(drop=True)
+    train_data.drop(columns=[0]).to_csv("train.csv", index=False, header=False)
+    test_data.drop(columns=[0]).to_csv("test.csv", index=False, header=False)
+    
 
 if __name__ == '__main__':
     try:

@@ -10,22 +10,36 @@ class Value:
         self._op = _op
         self.label = label
         self.grad = 0.0
+        self._backward = lambda:None
     
     def __repr__(self):
         return f"Value(data={self.data})"
     
     def __add__(self, other):
         out = Value(self.data + other.data, (self,other), '+')
+        def _backward():
+            self.grad = 1.0 * out.grad
+            other.grad = 1.0 * out.grad
+        out._backward = _backward
         return out
     
     def __mul__(self, other):
         out = Value(self.data * other.data, (self, other), '*')
+        def _backward():
+            self.grad = other.data * out.grad
+            other.grad = self.data * out.grad
+    
+        out._backward = _backward
         return out
     
     def tanh(self):
         x = self.data
         t = (math.exp(2 * x) - 1) / (math.exp(2 * x) + 1)
         out = Value(t, (self, ), 'tanh')
+        
+        def _backward():
+            self.grad = (1- t**2) * out.grad
+        out._backward = _backward
         
         return out      
 
@@ -69,5 +83,12 @@ if __name__ == '__main__':
     x1w1x2w2 = x1w1 + x2w2; x1w1x2w2.label = 'x1*w1 + x2w2'
     n = x1w1x2w2 + b; n.label = 'n'
     o = n.tanh(); o.label='o'
+    o.grad = 1.0
+    o._backward()
+    n._backward()
+    x1w1x2w2._backward()
+    x2w2._backward()
+    x1w1._backward()
     dot = draw_dot(o)
-    out = dot.render(filename="graph", format="svg", cleanup=True)
+    with open("graph.dot", "w") as f:
+        f.write(dot.source)

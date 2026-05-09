@@ -136,6 +136,9 @@ class Neuron:
         act = sum((wi*xi for wi, xi in zip(self.w, x)), self.b)
         out = act.tanh() 
         return out
+    
+    def parameters(self):# pytorch has parameters in each engine module that does the same too 
+        return self.w + [self.b]
 
 
 class Layer:
@@ -144,11 +147,50 @@ class Layer:
     
     def __call__(self, x):
         outs = [n(x) for n in self.neurons]
-        return outs
+        return outs[0] if len(outs) == 1 else outs
     
-cla
+    def parameters(self):
+        return [p for neuron in self.neurons for p in neuron.parameters()]
+    
+class MLP:
+    def __init__(self, nin, nouts):
+        sz = [nin] + nouts
+        self.layers = [Layer(sz[i], sz[i+1]) for i in range(len(nouts))]
+    
+    def __call__(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+    
+    def parameters(self):
+        return [p for layer in self.layers for p in layer.parameters()]
 
 if __name__ == '__main__':
-    x = [2.0, 3.0]
-    n = Layer(2, 3)
-    print(n(x))
+    xs = [
+        [2.0, 3.0, -1.0],
+        [3.0, -1.0, 0.5],
+        [0.5, 1.0, 1.0],
+        [1.0, 1.0, -1.0],
+	]
+    ys = [1.0, -1.0, -1.0, 1.0] # desired targets
+    n = MLP(3, [4, 4, 1])
+    
+    for k in range(20):
+        #Forward pass
+        ypred = [n(x) for x in xs]
+        loss = sum((yout - ygt)**2 for ygt, yout in zip(ys, ypred))
+        
+        #Backward pass
+        for p in n.parameters():
+            p.grad = 0.0	# WARNING!! -> Reset grad in each iteration of training
+        loss.backward()
+        
+        #Update
+        for p in n.parameters():
+            p.data += 0.1 * p.grad
+        print(k,loss)
+    
+    # dot = draw_dot(loss)
+    # with open("graph.dot", "w") as f:
+    #     f.write(dot.source)
+    

@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import pandas as pd
 from os import path
+import copy
 
 def open_dataset(dataset):
     data = pd.read_csv(dataset, header=None)
@@ -342,7 +343,7 @@ def training():
                     patience_counter = 0
                     if val_loss < best_overall_val_loss:
                         best_overall_val_loss = val_loss
-                        best_overall_model = model
+                        best_overall_model = copy.deepcopy(model)
                 else:
                     patience_counter += 1
                     

@@ -2,42 +2,11 @@ import matplotlib.pyplot as pl
 import numpy as np
 import sys
 import pandas as pd
-from os import path
+import os
 import copy
-
-def open_dataset(dataset):
-    data = pd.read_csv(dataset, header=None)
-    return data
-
-def networks_conf():
-    args = sys.argv[2:]
-    networks = []
-    current_network = []
-    
-    for arg in args:
-        if arg == '--layer' and current_network:
-            networks.append(current_network)
-            current_network = [arg]
-        else:
-            current_network.append(arg)
-    if current_network:
-        networks.append(current_network)
-    
-    return networks    
-
-def standardize(X, mean=None, std=None):
-    """
-    Applies Z-score normalization. 
-    If mean and std are not provided, it calculates them from the dataset X.
-    """
-    if mean is None or std is None:
-        mean = np.mean(X, axis=0)
-        std = np.std(X, axis=0)
-        # Prevent division by zero for columns that have zero variance
-        std = np.where(std == 0, 1e-15, std)
-        
-    X_scaled = (X - mean) / std
-    return X_scaled, mean, std
+from functions import softmax, tanh, tanh_derivative, categorical_crossentropy
+from tools import open_dataset, networks_conf, standardize, check_balance, calculate_metrics
+from models import MLP
 
 def parse():
     options = ["--dataset", "--training", "--predict"]
@@ -53,13 +22,13 @@ def parse():
         if len(sys.argv) != 3:
             raise Exception("--dataset <dataset.csv>")
        
-        if not path.exists(sys.argv[2]):
+        if not os.path.exists(sys.argv[2]):
             raise Exception("could not open the .csv file")
     elif option == '--training':
-        if not path.exists('test.csv'):
-            raise Exception("could not open test.csv")
-        if not path.exists('train.csv'):
-            raise Exception("could not open train.csv")
+        if not os.path.exists('datasets/data_test.csv'):
+            raise Exception("could not open datasets/data_test.csv")
+        if not os.path.exists('datasets/data_training.csv'):
+            raise Exception("could not open datasets/data_training.csv")
         if len(networks_conf()) == 0:
             raise Exception("wrong parameters input for training")
         
@@ -110,12 +79,12 @@ def parse():
             i += 2
             
     elif option == '--predict':
-        predict_file = sys.argv[2] if len(sys.argv) == 3 else 'test.csv'
+        predict_file = sys.argv[2] if len(sys.argv) == 3 else 'datasets/data_test.csv'
         if len(sys.argv) > 3:
             raise Exception("the predict option must only have an argument: .csv")
-        if not path.exists(predict_file):
+        if not os.path.exists(predict_file):
             raise Exception(f"could not open {predict_file}")
-        if not path.exists("models.npz"):
+        if not os.path.exists("models.npz"):
             raise Exception("could not open models.npz. You must run --training first.")
 
 def split_dataset():
@@ -128,128 +97,18 @@ def split_dataset():
     train_data = train_data.sample(frac=1, random_state=42)
     test_data = test_data.sample(frac=1, random_state=42)
     
-    train_data.to_csv("train.csv", index=False, header=False)
-    test_data.to_csv("test.csv", index=False, header=False)
-
-def check_balance(dataset):
-    class_counts = dataset[1].value_counts()
-    print("Class distribution:")
-    print(class_counts)
-    print("\nPercentages:")
-    print(class_counts / len(dataset) * 100)
-    print()
-
-# --- Math & Metrics ---
-def softmax(z):
-    exp_z = np.exp(z - np.max(z, axis=1, keepdims=True))
-    return exp_z / np.sum(exp_z, axis=1, keepdims=True)
-
-def tanh(z):
-    return np.tanh(z)
-
-def tanh_derivative(a):
-    return 1.0 - np.power(a, 2)
-
-def categorical_crossentropy(y_true, y_pred):
-    eps = 1e-15
-    y_pred = np.clip(y_pred, eps, 1 - eps)
-    return -np.mean(np.sum(y_true * np.log(y_pred), axis=1))
-
-def calculate_metrics(y_true, y_pred):
-    y_t = np.argmax(y_true, axis=1)
-    y_p = np.argmax(y_pred, axis=1)
-    
-    classes = np.unique(np.concatenate((y_t, y_p)))
-    precisions = []
-    recalls = []
-    f1s = []
-    
-    for c in classes:
-        tp = np.sum((y_p == c) & (y_t == c))
-        fp = np.sum((y_p == c) & (y_t != c))
-        fn = np.sum((y_p != c) & (y_t == c))
-        
-        prec = tp / (tp + fp) if (tp + fp) > 0 else 0
-        rec = tp / (tp + fn) if (tp + fn) > 0 else 0
-        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0
-        
-        precisions.append(prec)
-        recalls.append(rec)
-        f1s.append(f1)
-        
-    acc = np.mean(y_t == y_p)
-    return acc, np.mean(precisions), np.mean(recalls), np.mean(f1s)
-
-# --- Network Architecture ---
-class Layer:
-    def __init__(self, nin, nout, is_output=False):
-        self.W = np.random.randn(nin, nout) * np.sqrt(2. / nin)
-        self.b = np.zeros((1, nout))
-        self.is_output = is_output
-        self.Inputs, self.Z, self.A = None, None, None
-        
-        # Adam Parameters
-        self.mW, self.vW = np.zeros_like(self.W), np.zeros_like(self.W)
-        self.mb, self.vb = np.zeros_like(self.b), np.zeros_like(self.b)
-
-    def forward(self, inputs):
-        self.Inputs = inputs
-        self.Z = np.dot(inputs, self.W) + self.b
-        self.A = softmax(self.Z) if self.is_output else tanh(self.Z)
-        return self.A
-
-class MLP:
-    def __init__(self, layer_sizes):
-        self.layers = []
-        self.t = 0 # Global step for Adam
-        for i in range(len(layer_sizes) - 1):
-            is_out = (i == len(layer_sizes) - 2)
-            self.layers.append(Layer(layer_sizes[i], layer_sizes[i + 1], is_output=is_out))
-
-    def forward(self, x):
-        out = x
-        for layer in self.layers:
-            out = layer.forward(out)
-        return out
-
-    def backward(self, y_true, y_pred, learning_rate, opt):
-        m = y_true.shape[0]
-        dZ = y_pred - y_true
-        self.t += 1
-        
-        beta1, beta2, epsilon = 0.9, 0.999, 1e-8
-        
-        for i in reversed(range(len(self.layers))):
-            layer = self.layers[i]
-            
-            dW = np.dot(layer.Inputs.T, dZ) / m
-            db = np.sum(dZ, axis=0, keepdims=True) / m
-            
-            if i > 0:
-                prev_layer = self.layers[i - 1]
-                dA = np.dot(dZ, layer.W.T)
-                dZ = dA * tanh_derivative(prev_layer.A)
-            
-            if opt == 'Adam':
-                layer.mW = beta1 * layer.mW + (1 - beta1) * dW
-                layer.vW = beta2 * layer.vW + (1 - beta2) * (dW ** 2)
-                mWh = layer.mW / (1 - beta1 ** self.t)
-                vWh = layer.vW / (1 - beta2 ** self.t)
-                layer.W -= learning_rate * mWh / (np.sqrt(vWh) + epsilon)
-                
-                layer.mb = beta1 * layer.mb + (1 - beta1) * db
-                layer.vb = beta2 * layer.vb + (1 - beta2) * (db ** 2)
-                mbh = layer.mb / (1 - beta1 ** self.t)
-                vbh = layer.vb / (1 - beta2 ** self.t)
-                layer.b -= learning_rate * mbh / (np.sqrt(vbh) + epsilon)
-            else: # Fallback to GD
-                layer.W -= learning_rate * dW
-                layer.b -= learning_rate * db
+    train_data.to_csv("datasets/data_training.csv", index=False, header=False)
+    test_data.to_csv("datasets/data_test.csv", index=False, header=False)
 
 def training():
     # 1. Load proper Train and Test sets instead of internally splitting train.csv
-    train_data = open_dataset('train.csv')
-    test_data = open_dataset('test.csv')
+    train_data = open_dataset('datasets/data_training.csv')
+    test_data = open_dataset('datasets/data_test.csv')
+    if not os.path.exists('curves'):
+        os.makedirs('curves')
+    if not os.path.exists('history_models'):
+        os.makedirs('history_models')
+    
     
     train_data = train_data.sample(frac=1, random_state=42).reset_index(drop=True)
     
@@ -355,7 +214,7 @@ def training():
 
             # Save Metrics CSV history
             history_df = pd.DataFrame(history)
-            history_df.to_csv(f'history_model_{net_idx}_lr_{current_lr:.5f}.csv', index=False)
+            history_df.to_csv(f'history_models/history_model_{net_idx}_lr_{current_lr:.5f}.csv', index=False)
             
             # Plot Loss Curves
             ax1.plot(history_df['epoch'], history_df['train_loss'], label=f'Train LR {current_lr:.5f}')
@@ -379,7 +238,7 @@ def training():
         ax2.grid(True)
         
         arch_str = "-".join(map(str, layer_sizes))
-        plot_filename = f"curves_arch-{arch_str}_opt-{opt_choice}_epochs-{epochs}_bs-{actual_batch_size}_lr-{base_lr}.png"
+        plot_filename = f"curves/curves_arch-{arch_str}_opt-{opt_choice}_epochs-{epochs}_bs-{actual_batch_size}_lr-{base_lr}.png"
         
         pl.tight_layout()
         pl.savefig(plot_filename)
@@ -400,10 +259,11 @@ def training():
     print(f"Training completed! All best configurations saved to models.npz")
 
 def predict():
-    predict_file = sys.argv[2] if len(sys.argv) == 3 else 'test.csv'
+    predict_file = sys.argv[2] if len(sys.argv) == 3 else 'datasets/data_test.csv'
     print(f"Making predictions on {predict_file}...")
     test_data = open_dataset(predict_file)
     X_test = test_data.iloc[:, 2:].values.astype(np.float64)
+    Y_test = pd.get_dummies(test_data.iloc[:, 1])
     
     saved_params = np.load('models.npz')
     class_labels = saved_params['classes']
@@ -426,7 +286,9 @@ def predict():
             
         predictions = class_labels[np.argmax(A, axis=1)]
         results_df[f'Model_{net_idx}_Predictions'] = predictions
-        
+        loss = categorical_crossentropy(Y_test, A)
+        print(f"Evaluation Loss for Model ({net_idx}): {loss:.4f}")
+    
     results_df.to_csv('results.csv', index=False)
     print("Predictions saved to results.csv!")
 

@@ -128,11 +128,11 @@ def split_dataset():
     train_data = train_data.sample(frac=1, random_state=42)
     test_data = test_data.sample(frac=1, random_state=42)
     
-    train_data.drop(columns=[0]).to_csv("train.csv", index=False, header=False)
-    test_data.drop(columns=[0]).to_csv("test.csv", index=False, header=False)
+    train_data.to_csv("train.csv", index=False, header=False)
+    test_data.to_csv("test.csv", index=False, header=False)
 
 def check_balance(dataset):
-    class_counts = dataset[0].value_counts()
+    class_counts = dataset[1].value_counts()
     print("Class distribution:")
     print(class_counts)
     print("\nPercentages:")
@@ -254,15 +254,15 @@ def training():
     train_data = train_data.sample(frac=1, random_state=42).reset_index(drop=True)
     
     # Process Training Data
-    X_train = train_data.iloc[:, 1:].values.astype(np.float64)
-    Y_train_dummies = pd.get_dummies(train_data.iloc[:, 0])
+    X_train = train_data.iloc[:, 2:].values.astype(np.float64)
+    Y_train_dummies = pd.get_dummies(train_data.iloc[:, 1])
     class_labels = Y_train_dummies.columns.values.astype(str)
     Y_train = Y_train_dummies.values.astype(np.float64)
     
     # Process Validation Data (test.csv)
-    X_val = test_data.iloc[:, 1:].values.astype(np.float64)
+    X_val = test_data.iloc[:, 2:].values.astype(np.float64)
     # Reindex ensures test.csv gets the exact same M/B columns even if one is missing in a small dataset
-    Y_val_dummies = pd.get_dummies(test_data.iloc[:, 0]).reindex(columns=Y_train_dummies.columns, fill_value=0)
+    Y_val_dummies = pd.get_dummies(test_data.iloc[:, 1]).reindex(columns=Y_train_dummies.columns, fill_value=0)
     Y_val = Y_val_dummies.values.astype(np.float64)
     
     # Normalization
@@ -403,7 +403,7 @@ def predict():
     predict_file = sys.argv[2] if len(sys.argv) == 3 else 'test.csv'
     print(f"Making predictions on {predict_file}...")
     test_data = open_dataset(predict_file)
-    X_test = test_data.iloc[:, 1:].values.astype(np.float64)
+    X_test = test_data.iloc[:, 2:].values.astype(np.float64)
     
     saved_params = np.load('models.npz')
     class_labels = saved_params['classes']

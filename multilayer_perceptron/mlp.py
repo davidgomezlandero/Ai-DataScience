@@ -4,6 +4,7 @@ import sys
 import pandas as pd
 import os
 import copy
+np.random.seed(20)
 from functions import softmax, tanh, tanh_derivative, categorical_crossentropy
 from tools import open_dataset, networks_conf, standardize, check_balance, calculate_metrics
 from models import MLP
@@ -101,7 +102,6 @@ def split_dataset():
     test_data.to_csv("datasets/data_test.csv", index=False, header=False)
 
 def training():
-    # 1. Load proper Train and Test sets instead of internally splitting train.csv
     train_data = open_dataset('datasets/data_training.csv')
     test_data = open_dataset('datasets/data_test.csv')
     if not os.path.exists('curves'):
@@ -120,7 +120,6 @@ def training():
     
     # Process Validation Data (test.csv)
     X_val = test_data.iloc[:, 2:].values.astype(np.float64)
-    # Reindex ensures test.csv gets the exact same M/B columns even if one is missing in a small dataset
     Y_val_dummies = pd.get_dummies(test_data.iloc[:, 1]).reindex(columns=Y_train_dummies.columns, fill_value=0)
     Y_val = Y_val_dummies.values.astype(np.float64)
     
@@ -149,7 +148,6 @@ def training():
         
         lr_variations = [base_lr, base_lr / 10.0, base_lr * 10.0]
         
-        # We will create 2 side-by-side graphs: One for Loss, One for Accuracy
         fig, (ax1, ax2) = pl.subplots(1, 2, figsize=(15, 6))
         
         best_overall_model = None
@@ -299,9 +297,9 @@ if __name__ == '__main__':
         
         if option == '--dataset':
             split_dataset()
-            print("Dataset successfully split into train.csv and test.csv")
-            check_balance(open_dataset('test.csv'))
-            check_balance(open_dataset('train.csv'))
+            print("Dataset successfully split into data_training.csv and data_test.csv")
+            check_balance(open_dataset('datasets/data_training.csv'))
+            check_balance(open_dataset('datasets/data_test.csv'))
             
         elif option == '--training':
             training()
